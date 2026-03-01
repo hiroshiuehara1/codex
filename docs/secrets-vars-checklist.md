@@ -2,6 +2,8 @@
 
 Use this checklist to configure GitHub repository settings for live agent execution.
 
+For a prefilled copy-paste version specific to `hiroshiuehara1/codex`, see [`docs/datadog-argo-copy-paste-template.md`](./datadog-argo-copy-paste-template.md).
+
 ## Profile A: Generic API (observability + deployment)
 
 ### Repository secrets

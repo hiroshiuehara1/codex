@@ -162,6 +162,7 @@ npm run labels:sync
 Required labels and semantics are documented in [`docs/operating-model.md`](docs/operating-model.md).
 Vendor profiles are documented in [`docs/vendor-profiles.md`](docs/vendor-profiles.md).
 Exact repo setup checklist is in [`docs/secrets-vars-checklist.md`](docs/secrets-vars-checklist.md).
+Copy-paste setup for this repo (`hiroshiuehara1/codex`) is in [`docs/datadog-argo-copy-paste-template.md`](docs/datadog-argo-copy-paste-template.md).
 
 ## Branch protection
 

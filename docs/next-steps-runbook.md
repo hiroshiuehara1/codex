@@ -10,6 +10,7 @@ Pick one:
 - Datadog + Argo Rollouts profile
 
 Set secrets/variables using [`docs/secrets-vars-checklist.md`](./secrets-vars-checklist.md).
+For this repository with prefilled values, use [`docs/datadog-argo-copy-paste-template.md`](./datadog-argo-copy-paste-template.md).
 
 ## 2) Validate config
 
