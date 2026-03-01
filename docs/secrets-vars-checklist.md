@@ -18,6 +18,7 @@ Use this checklist to configure GitHub repository settings for live agent execut
 - `OBSERVABILITY_PROVIDER=api`
 - `DEPLOYMENT_PROVIDER=api`
 - `SERVICE_NAME=web-api` (or your service name)
+- `AUTO_USE_LIVE_SIGNAL=false` (for scheduled incident monitor)
 - `AUTO_APPLY_INCIDENT_ACTIONS=false` (start safe)
 - `AUTO_REPORT_INCIDENT_ISSUE=true`
 
@@ -50,6 +51,7 @@ Use this checklist to configure GitHub repository settings for live agent execut
 - `DATADOG_CANARY_TRAFFIC_QUERY=max:service.canary.traffic_pct{service:${service}}` (optional)
 - `DATADOG_CANARY_DURATION_MINUTES=30`
 - `DATADOG_CANARY_TRAFFIC_PCT=10`
+- `AUTO_USE_LIVE_SIGNAL=true` (if scheduled monitor should use live signal)
 - `AUTO_APPLY_INCIDENT_ACTIONS=false` (start safe)
 - `AUTO_REPORT_INCIDENT_ISSUE=true`
 
