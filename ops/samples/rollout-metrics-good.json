@@ -1,0 +1,9 @@
+{
+  "smokeTestsPassed": true,
+  "canaryDurationMinutes": 30,
+  "canaryTrafficPct": 10,
+  "errorRatePct": 0.5,
+  "latencyP95Ms": 220,
+  "failedRequests": 3,
+  "businessKpiDropPct": 0.2
+}

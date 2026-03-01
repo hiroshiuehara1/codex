@@ -1,0 +1,66 @@
+name: Agent Orchestrator
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_id:
+        description: Issue number to process
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  run-planner-builder-tester:
+    if: github.event_name == 'workflow_dispatch' || contains(join(github.event.issue.labels.*.name, ','), 'agent:ready')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+
+      - name: Run Agent Issue Pipeline
+        if: github.event_name != 'workflow_dispatch'
+        run: npm run agent:issue -- --event-file "$GITHUB_EVENT_PATH"
+
+      - name: Run Agent Issue Pipeline (manual)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm run agent:issue -- \
+            --issue-id "${{ inputs.issue_id || '0' }}" \
+            --repo "${{ github.repository }}" \
+            --title "Manual agent task" \
+            --body "- [ ] Manual workflow dispatch"
+
+      - name: Upload Agent Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-run-${{ github.run_id }}
+          path: |
+            .agent/work-item-*.json
+            .agent/run-summary.json
+          if-no-files-found: error
+
+      - name: Apply Inferred Labels
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = JSON.parse(fs.readFileSync('.agent/run-summary.json', 'utf8'));
+            const labels = Array.isArray(summary.labels) ? summary.labels : [];
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels
+              });
+            }

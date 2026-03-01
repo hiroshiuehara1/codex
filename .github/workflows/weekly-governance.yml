@@ -1,0 +1,25 @@
+name: Weekly Governance Report
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run governance:report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: governance-report-${{ github.run_id }}
+          path: .agent/governance-report.md

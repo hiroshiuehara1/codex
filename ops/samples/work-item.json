@@ -1,0 +1,15 @@
+{
+  "workItem": {
+    "issueId": 101,
+    "repo": "example/codex-agentic-pilot",
+    "title": "Add autonomous feature delivery pipeline",
+    "acceptanceCriteria": [
+      "Create agent issue orchestration",
+      "Enforce reviewer gates",
+      "Support canary and rollback"
+    ],
+    "workType": "feature",
+    "risk": "medium",
+    "status": "releasing"
+  }
+}

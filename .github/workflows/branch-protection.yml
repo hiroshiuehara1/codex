@@ -1,0 +1,50 @@
+name: Branch Protection
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to protect
+        required: true
+        default: main
+      checks:
+        description: Comma-separated required status checks
+        required: true
+        default: validate,pr-metadata,reviewer-gate
+      strict:
+        description: Require up-to-date branches before merge
+        required: true
+        default: "true"
+      dry_run:
+        description: Print payload only (do not apply)
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Validate Branch Protection Config
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+        run: npm run config:validate -- --scope branch-protection
+      - name: Apply branch protection
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+        run: |
+          cmd=(npm run branch-protection:apply -- --repo "${GITHUB_REPOSITORY}" --branch "${{ inputs.branch }}" --checks "${{ inputs.checks }}" --strict "${{ inputs.strict }}")
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            cmd+=(--dry-run)
+          fi
+          "${cmd[@]}"

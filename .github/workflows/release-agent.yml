@@ -1,0 +1,120 @@
+name: Release Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: staging | canary | full
+        required: true
+        default: staging
+      work_item_file:
+        description: Path to work item JSON
+        required: true
+        default: ops/samples/work-item.json
+      metrics_file:
+        description: Path to rollout metrics JSON
+        required: true
+        default: ops/samples/rollout-metrics-good.json
+      service_name:
+        description: Service name in deployment/observability backends
+        required: true
+        default: web-api
+      use_live_metrics:
+        description: Pull metrics from observability API instead of local file
+        required: true
+        default: "false"
+      apply_deployment:
+        description: Execute promote/rollback actions against deployment API
+        required: true
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  progressive-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Validate Release Config
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          ARGO_ROLLOUT_FULL_PROMOTION: ${{ vars.ARGO_ROLLOUT_FULL_PROMOTION }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          USE_LIVE_METRICS: ${{ inputs.use_live_metrics }}
+          APPLY_DEPLOYMENT: ${{ inputs.apply_deployment }}
+        run: npm run config:validate -- --scope release
+      - name: Provider Preflight (Release)
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          DATADOG_API_BASE_URL: ${{ vars.DATADOG_API_BASE_URL }}
+          USE_LIVE_METRICS: ${{ inputs.use_live_metrics }}
+          APPLY_DEPLOYMENT: ${{ inputs.apply_deployment }}
+        run: npm run providers:preflight -- --scope release --probe
+      - name: Run Release Agent
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          ARGO_ROLLOUT_FULL_PROMOTION: ${{ vars.ARGO_ROLLOUT_FULL_PROMOTION }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          DATADOG_API_BASE_URL: ${{ vars.DATADOG_API_BASE_URL }}
+          DATADOG_ERROR_RATE_QUERY: ${{ vars.DATADOG_ERROR_RATE_QUERY }}
+          DATADOG_LATENCY_P95_QUERY: ${{ vars.DATADOG_LATENCY_P95_QUERY }}
+          DATADOG_FAILED_REQUESTS_QUERY: ${{ vars.DATADOG_FAILED_REQUESTS_QUERY }}
+          DATADOG_BUSINESS_KPI_DROP_QUERY: ${{ vars.DATADOG_BUSINESS_KPI_DROP_QUERY }}
+          DATADOG_SMOKE_TESTS_QUERY: ${{ vars.DATADOG_SMOKE_TESTS_QUERY }}
+          DATADOG_SMOKE_TESTS_MIN: ${{ vars.DATADOG_SMOKE_TESTS_MIN }}
+          DATADOG_CANARY_DURATION_QUERY: ${{ vars.DATADOG_CANARY_DURATION_QUERY }}
+          DATADOG_CANARY_TRAFFIC_QUERY: ${{ vars.DATADOG_CANARY_TRAFFIC_QUERY }}
+          DATADOG_CANARY_DURATION_MINUTES: ${{ vars.DATADOG_CANARY_DURATION_MINUTES }}
+          DATADOG_CANARY_TRAFFIC_PCT: ${{ vars.DATADOG_CANARY_TRAFFIC_PCT }}
+          USE_LIVE_METRICS: ${{ inputs.use_live_metrics }}
+          APPLY_DEPLOYMENT: ${{ inputs.apply_deployment }}
+          SERVICE_NAME: ${{ inputs.service_name }}
+        run: |
+          cmd=(npm run agent:release -- --work-item "${{ inputs.work_item_file }}" --stage "${{ inputs.stage }}" --service "${{ inputs.service_name }}")
+          if [ "${{ inputs.use_live_metrics }}" = "true" ]; then
+            cmd+=(--live-metrics)
+          else
+            cmd+=(--metrics "${{ inputs.metrics_file }}")
+          fi
+          if [ "${{ inputs.apply_deployment }}" = "true" ]; then
+            cmd+=(--apply)
+          fi
+          "${cmd[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-summary-${{ github.run_id }}
+          path: .agent/release-summary.json

@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.agent/*.json
+.agent/*.md
+.agent/*.log
+.agent/*.ndjson
+!.agent/.keep

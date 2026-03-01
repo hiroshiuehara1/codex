@@ -1,0 +1,7 @@
+{
+  "service": "web-api",
+  "errorRatePct": 5.1,
+  "latencyP95Ms": 920,
+  "failedRequests": 76,
+  "businessKpiDropPct": 8.4
+}

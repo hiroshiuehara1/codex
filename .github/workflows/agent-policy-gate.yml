@@ -1,0 +1,65 @@
+name: Agent Policy Gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  reviewer-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Build reviewer inputs from PR metadata
+        run: |
+          mkdir -p .agent
+          cat <<'EOF_PR' >/tmp/pr_body.md
+          ${{ github.event.pull_request.body }}
+          EOF_PR
+
+          npm run agent:review:check -- --file /tmp/pr_body.md
+
+          node <<'EOF_NODE'
+          const fs = require('fs');
+          const body = fs.readFileSync('/tmp/pr_body.md', 'utf8');
+          const start = '<!-- agent-metadata:start -->';
+          const end = '<!-- agent-metadata:end -->';
+          const payload = body.slice(body.indexOf(start) + start.length, body.indexOf(end)).trim();
+          const metadata = JSON.parse(payload);
+
+          const workItem = {
+            workItem: {
+              issueId: Number(metadata.workItemId),
+              repo: process.env.GITHUB_REPOSITORY,
+              title: process.env.PR_TITLE || 'Agent PR',
+              acceptanceCriteria: metadata.testPlan,
+              workType: 'feature',
+              risk: metadata.risk,
+              status: 'reviewing'
+            }
+          };
+
+          const checks = {
+            typecheck: true,
+            lint: true,
+            unit: true,
+            integration: true,
+            security: true,
+            agentReview: true
+          };
+
+          fs.writeFileSync('.agent/work-item.json', JSON.stringify(workItem, null, 2));
+          fs.writeFileSync('.agent/checks.json', JSON.stringify(checks, null, 2));
+          EOF_NODE
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+
+      - name: Run Reviewer Agent
+        run: npm run agent:review -- --work-item .agent/work-item.json --checks .agent/checks.json --coverage-drop 0

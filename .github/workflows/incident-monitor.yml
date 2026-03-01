@@ -1,0 +1,122 @@
+name: Incident Monitor
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      signal_file:
+        description: Path to incident signal JSON
+        required: true
+        default: ops/samples/incident-signal-good.json
+      service_name:
+        description: Service name in deployment/observability backends
+        required: true
+        default: web-api
+      use_live_signal:
+        description: Pull signal from observability API instead of local file
+        required: true
+        default: "false"
+      apply_actions:
+        description: Execute rollback actions when incidents are detected
+        required: true
+        default: "false"
+      report_issue:
+        description: Open GitHub incident issue when rollback is triggered
+        required: true
+        default: "false"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Validate Incident Config
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          ARGO_ROLLOUT_FULL_PROMOTION: ${{ vars.ARGO_ROLLOUT_FULL_PROMOTION }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+        run: npm run config:validate -- --scope incident
+      - name: Provider Preflight (Incident)
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          DATADOG_API_BASE_URL: ${{ vars.DATADOG_API_BASE_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+        run: npm run providers:preflight -- --scope incident --probe
+      - name: Run Incident Agent
+        env:
+          DEPLOYMENT_PROVIDER: ${{ vars.DEPLOYMENT_PROVIDER }}
+          DEPLOY_API_BASE_URL: ${{ secrets.DEPLOY_API_BASE_URL }}
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          ARGO_ROLLOUT_NAME: ${{ vars.ARGO_ROLLOUT_NAME }}
+          ARGO_ROLLOUT_NAMESPACE: ${{ vars.ARGO_ROLLOUT_NAMESPACE }}
+          KUBECONFIG_CONTEXT: ${{ vars.KUBECONFIG_CONTEXT }}
+          ARGO_ROLLOUT_FULL_PROMOTION: ${{ vars.ARGO_ROLLOUT_FULL_PROMOTION }}
+          OBSERVABILITY_PROVIDER: ${{ vars.OBSERVABILITY_PROVIDER }}
+          OBSERVABILITY_API_BASE_URL: ${{ secrets.OBSERVABILITY_API_BASE_URL }}
+          OBSERVABILITY_API_TOKEN: ${{ secrets.OBSERVABILITY_API_TOKEN }}
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
+          DATADOG_API_BASE_URL: ${{ vars.DATADOG_API_BASE_URL }}
+          DATADOG_ERROR_RATE_QUERY: ${{ vars.DATADOG_ERROR_RATE_QUERY }}
+          DATADOG_LATENCY_P95_QUERY: ${{ vars.DATADOG_LATENCY_P95_QUERY }}
+          DATADOG_FAILED_REQUESTS_QUERY: ${{ vars.DATADOG_FAILED_REQUESTS_QUERY }}
+          DATADOG_BUSINESS_KPI_DROP_QUERY: ${{ vars.DATADOG_BUSINESS_KPI_DROP_QUERY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SERVICE_NAME: ${{ github.event_name == 'schedule' && vars.SERVICE_NAME || github.event.inputs.service_name }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+          SIGNAL_FILE: ${{ github.event.inputs.signal_file || 'ops/samples/incident-signal-good.json' }}
+        run: |
+          cmd=(npm run agent:incident -- --work-item ops/samples/work-item.json --service "${SERVICE_NAME:-web-api}")
+          if [ "${USE_LIVE_SIGNAL}" = "true" ]; then
+            cmd+=(--live-signal)
+          else
+            cmd+=(--metrics "${SIGNAL_FILE}")
+          fi
+          if [ "${APPLY_ACTIONS}" = "true" ]; then
+            cmd+=(--apply)
+          fi
+          if [ "${REPORT_ISSUE}" = "true" ]; then
+            cmd+=(--report-issue)
+          fi
+          "${cmd[@]}"

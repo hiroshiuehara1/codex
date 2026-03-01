@@ -1,0 +1,54 @@
+name: Agent Task
+about: Submit work for autonomous agent execution
+title: "[Agent Task]: "
+labels: ["agent:queued"]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - feature
+        - bug
+        - test
+        - refactor
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Initial Risk
+      options:
+        - low
+        - medium
+        - high
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem / Goal
+      description: What outcome do we need?
+      placeholder: Describe the requested change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: One requirement per line
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Security, compatibility, rollout, or deadline constraints
+      placeholder: No constraints.

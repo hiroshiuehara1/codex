@@ -1,0 +1,33 @@
+{
+  "name": "codex-agentic-pilot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub-native autonomous software development team pilot",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/lint.mjs",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "npm run build && node --test dist/tests/unit/**/*.test.js",
+    "test:integration": "npm run build && node --test dist/tests/integration/**/*.test.js",
+    "security:scan": "node scripts/security-scan.mjs",
+    "agent:issue": "npm run build && node dist/src/cli.js issue",
+    "agent:review": "npm run build && node dist/src/cli.js review",
+    "agent:release": "npm run build && node dist/src/cli.js release",
+    "agent:incident": "npm run build && node dist/src/cli.js incident",
+    "governance:report": "npm run build && node dist/src/cli.js governance",
+    "labels:sync": "node scripts/sync-labels.mjs",
+    "config:validate": "node scripts/validate-runtime-config.mjs",
+    "providers:preflight": "node scripts/provider-preflight.mjs",
+    "branch-protection:apply": "node scripts/configure-branch-protection.mjs",
+    "agent:review:check": "node scripts/check-pr-metadata.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.0",
+    "typescript": "^5.9.2"
+  }
+}
