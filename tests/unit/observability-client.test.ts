@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DatadogObservabilityClient,
   ObservabilityApiClient,
+  PrometheusObservabilityClient,
   createObservabilityClientFromEnv
 } from "../../src/incident/observability-client.js";
 
@@ -158,15 +159,67 @@ test("datadog client reads incident signal from v1 query API", async () => {
   }
 });
 
+test("prometheus client reads rollout and incident metrics from query API", async () => {
+  const calls: Array<{ url: string; headers: unknown }> = [];
+  const values = [0.8, 210, 4, 1.4, 4.1, 910, 65, 5.5];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    calls.push({ url: String(input), headers: init?.headers });
+    const value = values.shift() ?? 0;
+    return jsonResponse({
+      status: "success",
+      data: {
+        resultType: "vector",
+        result: [{ value: [1700000100, String(value)] }]
+      }
+    });
+  };
+
+  try {
+    const client = new PrometheusObservabilityClient({
+      baseUrl: "https://prom.example.com",
+      bearerToken: "prom-token",
+      defaultCanaryDurationMinutes: 30,
+      defaultCanaryTrafficPct: 10
+    });
+
+    const metrics = await client.getRolloutMetrics({
+      service: "web-api",
+      stage: "canary",
+      workItemId: 99
+    });
+    const signal = await client.getIncidentSignal({
+      service: "web-api",
+      workItemId: 99
+    });
+
+    assert.equal(metrics.errorRatePct, 0.8);
+    assert.equal(metrics.latencyP95Ms, 210);
+    assert.equal(metrics.failedRequests, 4);
+    assert.equal(metrics.businessKpiDropPct, 1.4);
+    assert.equal(signal.errorRatePct, 4.1);
+    assert.equal(signal.latencyP95Ms, 910);
+    assert.equal(signal.failedRequests, 65);
+    assert.equal(signal.businessKpiDropPct, 5.5);
+    assert.match(calls[0]?.url ?? "", /\/api\/v1\/query\?/);
+    const headers = calls[0]?.headers as Record<string, string>;
+    assert.equal(headers.Authorization, "Bearer prom-token");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("factory returns null when env missing", () => {
   const prevProvider = process.env.OBSERVABILITY_PROVIDER;
   const prevBaseUrl = process.env.OBSERVABILITY_API_BASE_URL;
   const prevApiKey = process.env.DATADOG_API_KEY;
   const prevAppKey = process.env.DATADOG_APP_KEY;
+  const prevPromBaseUrl = process.env.PROMETHEUS_BASE_URL;
   delete process.env.OBSERVABILITY_PROVIDER;
   delete process.env.OBSERVABILITY_API_BASE_URL;
   delete process.env.DATADOG_API_KEY;
   delete process.env.DATADOG_APP_KEY;
+  delete process.env.PROMETHEUS_BASE_URL;
 
   try {
     const client = createObservabilityClientFromEnv();
@@ -194,6 +247,12 @@ test("factory returns null when env missing", () => {
       process.env.DATADOG_APP_KEY = prevAppKey;
     } else {
       delete process.env.DATADOG_APP_KEY;
+    }
+
+    if (prevPromBaseUrl) {
+      process.env.PROMETHEUS_BASE_URL = prevPromBaseUrl;
+    } else {
+      delete process.env.PROMETHEUS_BASE_URL;
     }
   }
 });
@@ -227,6 +286,31 @@ test("factory picks datadog when configured", () => {
       process.env.DATADOG_APP_KEY = prevAppKey;
     } else {
       delete process.env.DATADOG_APP_KEY;
+    }
+  }
+});
+
+test("factory picks prometheus when configured", () => {
+  const prevProvider = process.env.OBSERVABILITY_PROVIDER;
+  const prevPromBaseUrl = process.env.PROMETHEUS_BASE_URL;
+
+  process.env.OBSERVABILITY_PROVIDER = "prometheus";
+  process.env.PROMETHEUS_BASE_URL = "https://prom.example.com";
+
+  try {
+    const client = createObservabilityClientFromEnv();
+    assert.equal(client instanceof PrometheusObservabilityClient, true);
+  } finally {
+    if (prevProvider) {
+      process.env.OBSERVABILITY_PROVIDER = prevProvider;
+    } else {
+      delete process.env.OBSERVABILITY_PROVIDER;
+    }
+
+    if (prevPromBaseUrl) {
+      process.env.PROMETHEUS_BASE_URL = prevPromBaseUrl;
+    } else {
+      delete process.env.PROMETHEUS_BASE_URL;
     }
   }
 });

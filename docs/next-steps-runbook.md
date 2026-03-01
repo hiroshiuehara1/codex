@@ -8,9 +8,13 @@ Pick one:
 
 - Generic API profile (internal observability + deploy APIs)
 - Datadog + Argo Rollouts profile
+- Prometheus + Argo Rollouts profile (Datadog alternative)
+- No-budget simulation profile (`OBSERVABILITY_PROVIDER=none`, `DEPLOYMENT_PROVIDER=noop`)
 
 Set secrets/variables using [`docs/secrets-vars-checklist.md`](./secrets-vars-checklist.md).
 For this repository with prefilled values, use [`docs/datadog-argo-copy-paste-template.md`](./datadog-argo-copy-paste-template.md).
+Prometheus prefilled values for this repository are in [`docs/prometheus-argo-copy-paste-template.md`](./prometheus-argo-copy-paste-template.md).
+No-budget workflow mode is in [`docs/no-budget-mode.md`](./no-budget-mode.md).
 
 ## 2) Validate config
 
@@ -33,6 +37,7 @@ For Argo mode, this checks:
 - `kubectl argo rollouts` plugin availability
 
 For Datadog mode, this probes `GET /api/v1/validate`.
+For Prometheus mode, this probes `GET /api/v1/query?query=up`.
 
 ## 4) Apply branch protection
 

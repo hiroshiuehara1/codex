@@ -114,7 +114,7 @@ async function resolveRolloutMetrics(
   const client = createObservabilityClientFromEnv();
   if (!client) {
     throw new Error(
-      "No observability provider configured. Set OBSERVABILITY_PROVIDER=api with OBSERVABILITY_API_BASE_URL or OBSERVABILITY_PROVIDER=datadog with DATADOG_API_KEY and DATADOG_APP_KEY."
+      "No observability provider configured. Set OBSERVABILITY_PROVIDER=api with OBSERVABILITY_API_BASE_URL, OBSERVABILITY_PROVIDER=datadog with DATADOG_API_KEY and DATADOG_APP_KEY, or OBSERVABILITY_PROVIDER=prometheus with PROMETHEUS_BASE_URL."
     );
   }
 
@@ -141,7 +141,7 @@ async function resolveIncidentSignal(
   const client = createObservabilityClientFromEnv();
   if (!client) {
     throw new Error(
-      "No observability provider configured. Set OBSERVABILITY_PROVIDER=api with OBSERVABILITY_API_BASE_URL or OBSERVABILITY_PROVIDER=datadog with DATADOG_API_KEY and DATADOG_APP_KEY."
+      "No observability provider configured. Set OBSERVABILITY_PROVIDER=api with OBSERVABILITY_API_BASE_URL, OBSERVABILITY_PROVIDER=datadog with DATADOG_API_KEY and DATADOG_APP_KEY, or OBSERVABILITY_PROVIDER=prometheus with PROMETHEUS_BASE_URL."
     );
   }
 

@@ -2,6 +2,9 @@
 
 This template is prefilled for your repo: `hiroshiuehara1/codex`.
 
+If you want a no-cost alternative, use [`docs/prometheus-argo-copy-paste-template.md`](./prometheus-argo-copy-paste-template.md).
+If you want zero live dependencies, use [`docs/no-budget-mode.md`](./no-budget-mode.md).
+
 Defaults used:
 
 - `SERVICE_NAME=web-api`

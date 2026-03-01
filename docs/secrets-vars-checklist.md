@@ -2,7 +2,10 @@
 
 Use this checklist to configure GitHub repository settings for live agent execution.
 
-For a prefilled copy-paste version specific to `hiroshiuehara1/codex`, see [`docs/datadog-argo-copy-paste-template.md`](./datadog-argo-copy-paste-template.md).
+For prefilled copy-paste versions specific to `hiroshiuehara1/codex`, see:
+
+- [`docs/datadog-argo-copy-paste-template.md`](./datadog-argo-copy-paste-template.md)
+- [`docs/prometheus-argo-copy-paste-template.md`](./prometheus-argo-copy-paste-template.md)
 
 ## Profile A: Generic API (observability + deployment)
 
@@ -56,6 +59,53 @@ For a prefilled copy-paste version specific to `hiroshiuehara1/codex`, see [`doc
 - `AUTO_USE_LIVE_SIGNAL=true` (if scheduled monitor should use live signal)
 - `AUTO_APPLY_INCIDENT_ACTIONS=false` (start safe)
 - `AUTO_REPORT_INCIDENT_ISSUE=true`
+
+## Profile C: Prometheus + Argo Rollouts (Datadog alternative)
+
+### Repository secrets
+
+- `PROMETHEUS_BEARER_TOKEN` (optional if endpoint is public)
+- `ADMIN_GITHUB_TOKEN`
+- `GITHUB_TOKEN` is automatically provided by Actions
+
+### Repository variables
+
+- `OBSERVABILITY_PROVIDER=prometheus`
+- `DEPLOYMENT_PROVIDER=argo-rollouts`
+- `SERVICE_NAME=web-api`
+- `ARGO_ROLLOUT_NAME=web-api`
+- `ARGO_ROLLOUT_NAMESPACE=production`
+- `ARGO_ROLLOUT_FULL_PROMOTION=true`
+- `KUBECONFIG_CONTEXT=<cluster-context>` (optional)
+- `PROMETHEUS_BASE_URL=https://prometheus.example.com`
+- `PROMETHEUS_ERROR_RATE_QUERY=avg(service_error_rate_pct{service="${service}",stage="${stage}"})`
+- `PROMETHEUS_LATENCY_P95_QUERY=avg(service_latency_p95_ms{service="${service}",stage="${stage}"})`
+- `PROMETHEUS_FAILED_REQUESTS_QUERY=sum(service_failed_requests{service="${service}",stage="${stage}"})`
+- `PROMETHEUS_BUSINESS_KPI_DROP_QUERY=avg(service_business_kpi_drop_pct{service="${service}",stage="${stage}"})`
+- `PROMETHEUS_SMOKE_TESTS_QUERY=avg(service_smoke_tests_passed{service="${service}",stage="${stage}"})` (optional)
+- `PROMETHEUS_SMOKE_TESTS_MIN=1` (optional)
+- `PROMETHEUS_CANARY_DURATION_QUERY=max(service_canary_duration_minutes{service="${service}"})` (optional)
+- `PROMETHEUS_CANARY_TRAFFIC_QUERY=max(service_canary_traffic_pct{service="${service}"})` (optional)
+- `PROMETHEUS_CANARY_DURATION_MINUTES=30`
+- `PROMETHEUS_CANARY_TRAFFIC_PCT=10`
+- `AUTO_USE_LIVE_SIGNAL=true` (if scheduled monitor should use live signal)
+- `AUTO_APPLY_INCIDENT_ACTIONS=false` (start safe)
+- `AUTO_REPORT_INCIDENT_ISSUE=true`
+
+## Profile D: No-budget (no live observability/deployment)
+
+### Repository variables
+
+- `OBSERVABILITY_PROVIDER=none`
+- `DEPLOYMENT_PROVIDER=noop`
+- `AUTO_USE_LIVE_SIGNAL=false`
+- `AUTO_APPLY_INCIDENT_ACTIONS=false`
+- `AUTO_REPORT_INCIDENT_ISSUE=false`
+
+Use this mode with workflow dispatch values:
+
+- Release Agent: `use_live_metrics=false`, `apply_deployment=false`
+- Incident Monitor: `use_live_signal=false`, `apply_actions=false`, `report_issue=false`
 
 ## Validation commands
 

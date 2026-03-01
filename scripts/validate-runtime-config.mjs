@@ -16,11 +16,14 @@ function isSet(name) {
 
 function inferObservabilityProvider() {
   const explicit = String(process.env.OBSERVABILITY_PROVIDER ?? "").trim().toLowerCase();
-  if (["api", "datadog", "none"].includes(explicit)) {
+  if (["api", "datadog", "prometheus", "none"].includes(explicit)) {
     return explicit;
   }
   if (isSet("DATADOG_API_KEY") && isSet("DATADOG_APP_KEY")) {
     return "datadog";
+  }
+  if (isSet("PROMETHEUS_BASE_URL")) {
+    return "prometheus";
   }
   if (isSet("OBSERVABILITY_API_BASE_URL")) {
     return "api";
@@ -67,9 +70,17 @@ function validateObservability(provider, required) {
     };
   }
 
+  if (provider === "prometheus") {
+    const missing = missingVars(["PROMETHEUS_BASE_URL"]);
+    return {
+      errors: missing.map((name) => `Missing ${name} for prometheus observability provider.`),
+      warnings: []
+    };
+  }
+
   return {
     errors: [
-      "Observability provider is not configured, but live metrics/signal is enabled. Set OBSERVABILITY_PROVIDER=api or datadog."
+      "Observability provider is not configured, but live metrics/signal is enabled. Set OBSERVABILITY_PROVIDER=api, datadog, or prometheus."
     ],
     warnings: []
   };

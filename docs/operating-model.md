@@ -56,6 +56,7 @@ Live mode integrations:
 - Observability providers:
   - Generic API (`OBSERVABILITY_PROVIDER=api`, `OBSERVABILITY_API_BASE_URL`)
   - Datadog Metrics Query API (`OBSERVABILITY_PROVIDER=datadog`, `DATADOG_API_KEY`, `DATADOG_APP_KEY`)
+  - Prometheus Query API (`OBSERVABILITY_PROVIDER=prometheus`, `PROMETHEUS_BASE_URL`)
 - Deployment providers:
   - Generic API (`DEPLOYMENT_PROVIDER=api`, `DEPLOY_API_BASE_URL`)
   - Argo Rollouts via `kubectl argo rollouts` (`DEPLOYMENT_PROVIDER=argo-rollouts`)

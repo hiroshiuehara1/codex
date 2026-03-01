@@ -22,11 +22,14 @@ function isSet(name) {
 
 function inferObservabilityProvider() {
   const explicit = String(process.env.OBSERVABILITY_PROVIDER ?? "").trim().toLowerCase();
-  if (["api", "datadog", "none"].includes(explicit)) {
+  if (["api", "datadog", "prometheus", "none"].includes(explicit)) {
     return explicit;
   }
   if (isSet("DATADOG_API_KEY") && isSet("DATADOG_APP_KEY")) {
     return "datadog";
+  }
+  if (isSet("PROMETHEUS_BASE_URL")) {
+    return "prometheus";
   }
   if (isSet("OBSERVABILITY_API_BASE_URL")) {
     return "api";
@@ -95,6 +98,54 @@ async function probeDatadog(baseUrl, apiKey, appKey, timeoutMs) {
   }
 }
 
+async function probePrometheus(baseUrl, bearerToken, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const params = new URLSearchParams({
+      query: "up",
+      time: String(Math.floor(Date.now() / 1000))
+    });
+    const response = await fetch(
+      `${baseUrl.replace(/\/$/, "")}/api/v1/query?${params.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(bearerToken ? { Authorization: `Bearer ${bearerToken}` } : {})
+        },
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return {
+        ok: false,
+        message: `Prometheus query probe failed ${response.status}: ${text || response.statusText}`
+      };
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    if (payload?.status !== "success") {
+      return {
+        ok: false,
+        message: `Prometheus query probe failed: ${payload?.error ?? payload?.errorType ?? "unknown error"}`
+      };
+    }
+
+    return { ok: true, message: "Prometheus query probe passed" };
+  } catch (error) {
+    return {
+      ok: false,
+      message: `Prometheus probe error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function main() {
   const scope = String(arg("--scope", "both")).trim().toLowerCase();
   const useLiveMetrics = normalizeBoolean(
@@ -156,9 +207,28 @@ async function main() {
           "OBSERVABILITY_API_TOKEN is not set; ensure API endpoint allows unauthenticated reads."
         );
       }
+    } else if (observabilityProvider === "prometheus") {
+      if (!isSet("PROMETHEUS_BASE_URL")) {
+        errors.push("PROMETHEUS_BASE_URL is required for OBSERVABILITY_PROVIDER=prometheus.");
+      } else if (probe) {
+        const result = await probePrometheus(
+          process.env.PROMETHEUS_BASE_URL,
+          process.env.PROMETHEUS_BEARER_TOKEN,
+          Number(process.env.PROMETHEUS_API_TIMEOUT_MS ?? "15000")
+        );
+        checks.push(result.message);
+        if (!result.ok) {
+          errors.push(result.message);
+        }
+      }
+      if (probe && !isSet("PROMETHEUS_BEARER_TOKEN")) {
+        warnings.push(
+          "PROMETHEUS_BEARER_TOKEN is not set; ensure Prometheus endpoint allows unauthenticated reads."
+        );
+      }
     } else {
       errors.push(
-        "Observability is required, but provider is none. Set OBSERVABILITY_PROVIDER=api or datadog."
+        "Observability is required, but provider is none. Set OBSERVABILITY_PROVIDER=api, datadog, or prometheus."
       );
     }
   }

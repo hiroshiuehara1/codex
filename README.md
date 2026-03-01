@@ -131,6 +131,23 @@ export ARGO_ROLLOUT_FULL_PROMOTION="true"
 # kubectl argo rollouts abort ...
 ```
 
+### 4d) Vendor profile: Prometheus + Argo Rollouts (Datadog alternative)
+
+```bash
+export OBSERVABILITY_PROVIDER="prometheus"
+export PROMETHEUS_BASE_URL="https://prometheus.example.com"
+export PROMETHEUS_BEARER_TOKEN="..."
+export PROMETHEUS_ERROR_RATE_QUERY='avg(service_error_rate_pct{service="${service}",stage="${stage}"})'
+export PROMETHEUS_LATENCY_P95_QUERY='avg(service_latency_p95_ms{service="${service}",stage="${stage}"})'
+export PROMETHEUS_FAILED_REQUESTS_QUERY='sum(service_failed_requests{service="${service}",stage="${stage}"})'
+export PROMETHEUS_BUSINESS_KPI_DROP_QUERY='avg(service_business_kpi_drop_pct{service="${service}",stage="${stage}"})'
+
+export DEPLOYMENT_PROVIDER="argo-rollouts"
+export ARGO_ROLLOUT_NAME="web-api"
+export ARGO_ROLLOUT_NAMESPACE="production"
+export ARGO_ROLLOUT_FULL_PROMOTION="true"
+```
+
 ### 5) Governance report
 
 ```bash
@@ -163,6 +180,8 @@ Required labels and semantics are documented in [`docs/operating-model.md`](docs
 Vendor profiles are documented in [`docs/vendor-profiles.md`](docs/vendor-profiles.md).
 Exact repo setup checklist is in [`docs/secrets-vars-checklist.md`](docs/secrets-vars-checklist.md).
 Copy-paste setup for this repo (`hiroshiuehara1/codex`) is in [`docs/datadog-argo-copy-paste-template.md`](docs/datadog-argo-copy-paste-template.md).
+Prometheus copy-paste setup for this repo is in [`docs/prometheus-argo-copy-paste-template.md`](docs/prometheus-argo-copy-paste-template.md).
+No-budget mode instructions are in [`docs/no-budget-mode.md`](docs/no-budget-mode.md).
 
 ## Branch protection
 
