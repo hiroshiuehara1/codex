@@ -56,9 +56,9 @@ jobs:
           DATADOG_APP_KEY: ${{ secrets.DATADOG_APP_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.use_live_signal }}
-          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
-          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && (vars.AUTO_USE_LIVE_SIGNAL || 'false') || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && (vars.AUTO_APPLY_INCIDENT_ACTIONS || 'false') || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && (vars.AUTO_REPORT_INCIDENT_ISSUE || 'false') || github.event.inputs.report_issue }}
         run: npm run config:validate -- --scope incident
       - name: Provider Preflight (Incident)
         env:
@@ -76,9 +76,9 @@ jobs:
           DATADOG_API_BASE_URL: ${{ vars.DATADOG_API_BASE_URL }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && 'true' || github.event.inputs.use_live_signal }}
-          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
-          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && (vars.AUTO_USE_LIVE_SIGNAL || 'false') || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && (vars.AUTO_APPLY_INCIDENT_ACTIONS || 'false') || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && (vars.AUTO_REPORT_INCIDENT_ISSUE || 'false') || github.event.inputs.report_issue }}
         run: npm run providers:preflight -- --scope incident --probe
       - name: Run Incident Agent
         env:
@@ -101,10 +101,10 @@ jobs:
           DATADOG_BUSINESS_KPI_DROP_QUERY: ${{ vars.DATADOG_BUSINESS_KPI_DROP_QUERY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          SERVICE_NAME: ${{ github.event_name == 'schedule' && vars.SERVICE_NAME || github.event.inputs.service_name }}
-          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && vars.AUTO_USE_LIVE_SIGNAL || github.event.inputs.use_live_signal }}
-          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && vars.AUTO_APPLY_INCIDENT_ACTIONS || github.event.inputs.apply_actions }}
-          REPORT_ISSUE: ${{ github.event_name == 'schedule' && vars.AUTO_REPORT_INCIDENT_ISSUE || github.event.inputs.report_issue }}
+          SERVICE_NAME: ${{ github.event_name == 'schedule' && (vars.SERVICE_NAME || 'web-api') || github.event.inputs.service_name }}
+          USE_LIVE_SIGNAL: ${{ github.event_name == 'schedule' && (vars.AUTO_USE_LIVE_SIGNAL || 'false') || github.event.inputs.use_live_signal }}
+          APPLY_ACTIONS: ${{ github.event_name == 'schedule' && (vars.AUTO_APPLY_INCIDENT_ACTIONS || 'false') || github.event.inputs.apply_actions }}
+          REPORT_ISSUE: ${{ github.event_name == 'schedule' && (vars.AUTO_REPORT_INCIDENT_ISSUE || 'false') || github.event.inputs.report_issue }}
           SIGNAL_FILE: ${{ github.event.inputs.signal_file || 'ops/samples/incident-signal-good.json' }}
         run: |
           cmd=(npm run agent:incident -- --work-item ops/samples/work-item.json --service "${SERVICE_NAME:-web-api}")
